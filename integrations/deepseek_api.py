@@ -3,7 +3,7 @@ import requests
 from openai import OpenAI
 
 
-class AIResponseGenerator:
+class AIResponseGenerator: #TODO сделать обработку случая, когда закончились деньги на аккаунте
     def __init__(self, api_key: str):
         self.api_url = "https://api.deepseek.com/v1/chat/completions"
         self.client = OpenAI(
@@ -24,7 +24,7 @@ class AIResponseGenerator:
                     ---
                     Текст отзыва: {review_text}
                     ---
-                    Сгенерируй профессиональный ответ:
+                    Сгенерируй профессиональный ответ. Нужен только текст ответа длинной не более 5000 символов:
                     """
             }
         ]
@@ -41,4 +41,4 @@ class AIResponseGenerator:
         try:
             return response.choices[0].message.content
         except Exception as e:
-            return f"Ошибка при генерации ответа: {str(e)}"
+            return ''

@@ -1,4 +1,5 @@
 import logging
+import sys
 from datetime import datetime
 
 
@@ -10,12 +11,12 @@ class AppLogger:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
         # File handler
-        fh = logging.FileHandler(log_file)
+        fh = logging.FileHandler(log_file, encoding='utf-8')
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
 
         # Console handler
-        ch = logging.StreamHandler()
+        ch = logging.StreamHandler(stream=sys.stdout)
         ch.setFormatter(formatter)
         self.logger.addHandler(ch)
 

@@ -1,4 +1,4 @@
-from .models import Review, Response
+from .models import WbReview, Response
 from .responder import ReviewResponder
 
-__all__ = ['Review', 'Response', 'ReviewResponder']
+__all__ = ['WbReview', 'Response', 'ReviewResponder']
