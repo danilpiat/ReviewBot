@@ -10,7 +10,7 @@ class ReviewResponder:
         self.ai_client = ai_client
         self.logger = logger.logger
 
-    def process_review(self, review: Optional[WbReview], prompt: str) -> Optional[str]:
+    def process_review(self, review: Optional[WbReview], base_prompt: str, prompt: str) -> Optional[str]:
         try:
             self.logger.info(f"[{review.marketplace}] Обрабатываю отзыв с id {review.id}")
 
@@ -18,7 +18,7 @@ class ReviewResponder:
                 self.logger.info(f"[{review.marketplace}] [{review.id}] Текст отзыва пустой.")
                 return None
 
-            response = self.ai_client.generate_response(prompt, review.text)
+            response = self.ai_client.generate_response(base_prompt, prompt, review.text)
             self.logger.info(f"[{review.marketplace}] [{review.id}] Ответ ИИ: '''{response}''' ")
             if self._post_process(response):
                 return response

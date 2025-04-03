@@ -11,7 +11,7 @@ class AIResponseGenerator: #TODO сделать обработку случая,
             base_url="https://hubai.loe.gg/v1"
         )
 
-    def generate_response(self, prompt: str, review_text: str) -> str:
+    def generate_response(self, base_prompt: str, prompt: str, review_text: str) -> str:
         messages = [
             {
                 "role": "system",
@@ -20,6 +20,8 @@ class AIResponseGenerator: #TODO сделать обработку случая,
             {
                 "role": "user",
                 "content": f"""
+                    'Обязательная часть ответа: {base_prompt if base_prompt != '' else 'Длина ответа должна быть не более 10 предложений'}'
+                    ---
                     Инструкции по ответу: {prompt}
                     ---
                     Текст отзыва: {review_text}

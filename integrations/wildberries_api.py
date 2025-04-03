@@ -49,14 +49,14 @@ class WBIntegration:
                 "text": response_text[:5000]  # Обрезаем текст до 5000 символов
             }
 
-            # response = requests.post(
-            #     url=self.base_url+ANSWER_TO_FEEDBACK_URL,
-            #     headers=self.headers,
-            #     json=payload,
-            #     timeout=10
-            # )
-            #
-            # response.raise_for_status()
+            response = requests.post(
+                url=self.base_url+ANSWER_TO_FEEDBACK_URL,
+                headers=self.headers,
+                json=payload,
+                timeout=10
+            )
+
+            response.raise_for_status()
             return True
 
         except Exception as e:

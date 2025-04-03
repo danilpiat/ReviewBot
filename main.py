@@ -1,8 +1,6 @@
 import time
 import traceback
 
-from gspread import api_key
-
 from core import WbReview
 from integrations.google_sheets import GoogleSheetsConfigManager
 from integrations.wildberries_api import WBIntegration
@@ -25,38 +23,47 @@ def main():
         logger.logger.info("Начинаю проход по циклу")
         try:
             config = GoogleSheetsConfigManager("1QZw7vZIZR6caHJwGu0zwdp5K8TSNNE_HBsGVXUMe8Ig",
-                                               "complete-sector-358111-6507e2db8737.json")
-            ai_client = AIResponseGenerator("sk-Hf5sYl71ZmRT9bjwLkQViQ")
-            responder = ReviewResponder(ai_client, logger)
-
+                                               "complete-sector-358111-6507e2db8737.json",
+                                               logger)
             settings = config.get_active_config()
-            if not settings['ai_enabled']:
-                logger.logger.info(f"[{settings['marketplace']}] Для маркетплейса отключены ответы на отзывы.")
-                continue
+            for market in settings:
+                if market["marketplace"] != "WB":
+                    continue
+                if not market['ai_enabled']:
+                    logger.logger.info(f"[{market['marketplace']}] Для маркетплейса отключены ответы на отзывы.")
+                    continue
+                if not market['ai_key']:
+                    raise Exception(f"[{market['marketplace']}] Не указан ключ от ИИ.")
 
-            api_key = settings.get("api_key")
-            if api_key is None:
-                raise Exception(f"[{settings['marketplace']}] Не указаны данные API.")#TODO сделать обработку если нет АПИ ключа
-            wb_client = WBIntegration(api_key)
+                ai_client = AIResponseGenerator(market['ai_key'])
+                responder = ReviewResponder(ai_client, logger)
 
-            logger.logger.warning(f"[{settings['marketplace']}] Будут отбираться отзывы, имеющие state входящие в {wb_client.state}")
+                m_api_key = market.get("api_key") #TODO когда сделаю Озон нужно добавить еще API Login
+                if m_api_key is None:
+                    raise Exception(f"[{market['marketplace']}] Не указаны данные API.")
+                wb_client = WBIntegration(m_api_key)
 
-            reviews = wb_client.get_new_reviews(settings['rating_threshold'])
+                logger.logger.warning(f"[{market['marketplace']}] Будут отбираться отзывы, имеющие state входящие в {wb_client.state}")
 
-            for raw_review in reviews:
-                review = WbReview(**raw_review)
-                response = responder.process_review(review, settings['prompt_template'])
-                if response:
-                    if wb_client.post_response(review['id'], response):
-                        logger.logger.info(f"[{review.marketplace}] [{review.id}] Ответ на отзыв успешно отправлен.")
-                    else:
-                        logger.logger.error(f"[{review.marketplace}] [{review.id}] Произошла ошибка при отправке ответа на отзыв.")
+                reviews = wb_client.get_new_reviews(market['rating_threshold'])
+
+                for raw_review in reviews:
+                    review = WbReview(**raw_review)
+                    base_prompt = market['prompt_options'].get('Обязательная часть', '')
+                    prompt = market['prompt_options'].get(market['prompt_template'], '')
+                    response = responder.process_review(review, base_prompt, prompt)
+                    if response:
+                        if wb_client.post_response(review.id, response):
+                            logger.logger.info(f"[{review.marketplace}] [{review.id}] Ответ на отзыв успешно отправлен.")
+                        else:
+                            logger.logger.error(f"[{review.marketplace}] [{review.id}] Произошла ошибка при отправке ответа на отзыв.")
 
 
         except Exception as e:
             error_msg = f"Main loop error: {str(e)}\n\n{traceback.format_exc()}"
+            error_msg_tlg = f"Main loop error: {str(e)}\n\n"
             logger.logger.error(error_msg)
-            notifier.send_alert(f"🚨 Critical Error\n{error_msg}", level="CRITICAL")
+            notifier.send_alert(f"🚨 Critical Error\n{error_msg_tlg}", level="CRITICAL")
         finally:
             time.sleep(60)
 if __name__ == '__main__':
