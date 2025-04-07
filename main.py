@@ -47,6 +47,8 @@ def main():
 
                 reviews = wb_client.get_new_reviews(market['rating_threshold'])
 
+                logger.logger.info(f"[{market['marketplace']}] Получено {len(reviews)} неотвеченных отзывов")
+
                 for raw_review in reviews:
                     review = WbReview(**raw_review)
                     base_prompt = market['prompt_options'].get('Обязательная часть', '')
