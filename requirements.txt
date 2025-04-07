@@ -1,0 +1,5 @@
+pytelegrambotapi~=4.26.0
+requests~=2.32.3
+openai~=1.70.0
+backoff~=2.2.1
+gspread~=6.2.0
