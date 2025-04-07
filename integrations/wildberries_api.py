@@ -18,7 +18,7 @@ class WBIntegration:
             response = requests.get(
                 self.base_url+FEEDBACKS_URL,
                 headers=self.headers,
-                params={'isAnswered': True, 'take': 5000, 'skip': 0} #TODO сменить на False
+                params={'isAnswered': True, 'take': 5000, 'skip': 0}
             )
             response.raise_for_status()
             return self._filter_by_state_and_threshold(response.json(), rating_threshold)
@@ -32,7 +32,9 @@ class WBIntegration:
         new_reviews = []
         reviews = data['data']['feedbacks']
         for review in reviews:
-            if self._filter_by_state(review) and review['productValuation'] > rating_threshold:
+            if (self._filter_by_state(review)
+                    and review['productValuation'] > rating_threshold
+                    and review['answer'] is None):
                 new_reviews.append(review)
         return new_reviews
 

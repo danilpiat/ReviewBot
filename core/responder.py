@@ -14,11 +14,11 @@ class ReviewResponder:
         try:
             self.logger.info(f"[{review.marketplace}] Обрабатываю отзыв с id {review.id}")
 
-            if not self._validate_review(review):
-                self.logger.info(f"[{review.marketplace}] [{review.id}] Текст отзыва пустой.")
-                return None
+            # if not self._validate_review(review):
+            #     self.logger.info(f"[{review.marketplace}] [{review.id}] Текст отзыва пустой.")
+            #     return None
 
-            response = self.ai_client.generate_response(base_prompt, prompt, review.text)
+            response = self.ai_client.generate_response(base_prompt, prompt, review)
             self.logger.info(f"[{review.marketplace}] [{review.id}] Ответ ИИ: '''{response}''' ")
             if self._post_process(response):
                 return response

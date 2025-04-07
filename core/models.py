@@ -56,6 +56,10 @@ class WbReview:
         # Сохранение всех исходных данных
         self._raw_data = kwargs
 
+        self.good = self.productDetails.productName
+        self.pros = kwargs.get('pros', '')
+        self.cons = kwargs.get('cons', '')
+
     @property
     def metadata(self) -> Dict[str, Any]:
         """Доступ ко всем данным отзыва"""
