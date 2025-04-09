@@ -30,24 +30,24 @@ def main():
                 if market["marketplace"] != "WB":
                     continue
                 if not market['ai_enabled']:
-                    logger.logger.info(f"[{market['marketplace']}] Для маркетплейса отключены ответы на отзывы.")
+                    logger.logger.info(f"[{market['account']}] [{market['marketplace']}] Для маркетплейса отключены ответы на отзывы.")
                     continue
                 if not market['ai_key']:
-                    raise Exception(f"[{market['marketplace']}] Не указан ключ от ИИ.")
+                    raise Exception(f"[{market['account']}] [{market['marketplace']}] Не указан ключ от ИИ.")
 
                 ai_client = AIResponseGenerator(market['ai_key'])
-                responder = ReviewResponder(ai_client, logger)
+                responder = ReviewResponder(market['account'], ai_client, logger)
 
                 m_api_key = market.get("api_key") #TODO когда сделаю Озон нужно добавить еще API Login
                 if m_api_key is None:
-                    raise Exception(f"[{market['marketplace']}] Не указаны данные API.")
+                    raise Exception(f"[{market['account']}] [{market['marketplace']}] Не указаны данные API.")
                 wb_client = WBIntegration(m_api_key)
 
-                logger.logger.warning(f"[{market['marketplace']}] Будут отбираться отзывы, имеющие state входящие в {wb_client.state}")
+                logger.logger.warning(f"[{market['account']}] [{market['marketplace']}] Будут отбираться отзывы, имеющие state входящие в {wb_client.state}")
 
                 reviews = wb_client.get_new_reviews(market['rating_threshold'])
 
-                logger.logger.info(f"[{market['marketplace']}] Получено {len(reviews)} неотвеченных отзывов")
+                logger.logger.info(f"[{market['account']}] [{market['marketplace']}] Получено {len(reviews)} неотвеченных отзывов")
 
                 for raw_review in reviews:
                     review = WbReview(**raw_review)
@@ -56,9 +56,9 @@ def main():
                     response = responder.process_review(review, base_prompt, prompt)
                     if response:
                         if wb_client.post_response(review.id, response):
-                            logger.logger.info(f"[{review.marketplace}] [{review.id}] Ответ на отзыв успешно отправлен.")
+                            logger.logger.info(f"[{market['account']}] [{review.marketplace}] [{review.id}] Ответ на отзыв успешно отправлен.")
                         else:
-                            logger.logger.error(f"[{review.marketplace}] [{review.id}] Произошла ошибка при отправке ответа на отзыв.")
+                            logger.logger.error(f"[{market['account']}] [{review.marketplace}] [{review.id}] Произошла ошибка при отправке ответа на отзыв.")
 
 
         except Exception as e:

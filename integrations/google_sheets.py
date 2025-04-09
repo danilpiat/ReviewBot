@@ -41,7 +41,7 @@ class GoogleSheetsConfigManager:
             raise ValueError("No configuration data found")
 
         configs = []
-        required_fields = {'Маркетплейс', 'API ключ', 'Активировать ИИ', 'Отвечаем на отзывы с оценкой более', 'Ключ ИИ'}
+        required_fields = {'ИП', 'Маркетплейс', 'API ключ', 'Активировать ИИ', 'Отвечаем на отзывы с оценкой более', 'Ключ ИИ'}
         marketplaces = []
         for idx, row in enumerate(config_data, start=2):  # Строки нумеруются с 2 (заголовок в 1 строке)
                 missing_fields = required_fields - row.keys()
@@ -50,6 +50,7 @@ class GoogleSheetsConfigManager:
 
                 # Основные параметры
                 config = {
+                    'account': row['ИП'].strip(),
                     'marketplace': row['Маркетплейс'].strip(),
                     'api_key': row['API ключ'].strip(),
                     'ai_key': row['Ключ ИИ'].strip(),
@@ -67,11 +68,11 @@ class GoogleSheetsConfigManager:
                 # for sheet_field, config_field in optional_fields.items():
                 #     if sheet_field in row:
                 #         config[config_field] = row[sheet_field].strip()
-                if config['marketplace'] not in marketplaces:
-                    configs.append(config)
-                    marketplaces.append(config['marketplace'])
-                else:
-                    self.logger.logger.warning(f"Маркетплейс {config['marketplace']} уже есть в config. Возможно в таблице дубликат.")
+                # if config['marketplace'] not in marketplaces: #TODO сделать все же проверку на дубли
+                configs.append(config)
+                    # marketplaces.append(config['marketplace'])
+                # else:
+                #     self.logger.logger.warning(f"Маркетплейс {config['marketplace']} уже есть в config. Возможно в таблице дубликат.")
 
         if not configs:
             raise ValueError("No valid configurations found in the sheet")
