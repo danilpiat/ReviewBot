@@ -46,6 +46,7 @@ def main():
                 logger.logger.warning(f"[{market['account']}] [{market['marketplace']}] Будут отбираться отзывы, имеющие state входящие в {wb_client.state}")
 
                 reviews = wb_client.get_new_reviews(market['rating_threshold'])
+                reviews += wb_client.get_new_reviews(market['rating_threshold'], is_answered=True)
 
                 logger.logger.info(f"[{market['account']}] [{market['marketplace']}] Получено {len(reviews)} неотвеченных отзывов")
 

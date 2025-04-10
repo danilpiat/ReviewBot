@@ -10,15 +10,15 @@ class WBIntegration:
     def __init__(self, api_key: str):
         self.base_url = "https://feedbacks-api.wildberries.ru"
         self.headers = {'Authorization': api_key}
-        self.state = ["wbRu"] #только прошедшие проверку WB отзывы (прошли модерацию от Wb)
+        self.state = ["wbRu", 'none'] #только прошедшие проверку WB отзывы (прошли модерацию от Wb)
         self.last_request_time: Optional[float] = None
 
-    def get_new_reviews(self, rating_threshold: int) -> List[dict]:
+    def get_new_reviews(self, rating_threshold: int, is_answered=False) -> List[dict]:
         try:
             response = requests.get(
                 self.base_url+FEEDBACKS_URL,
                 headers=self.headers,
-                params={'isAnswered': True, 'take': 5000, 'skip': 0}
+                params={'isAnswered': is_answered, 'take': 5000, 'skip': 0, 'order': 'dateDesc'}
             )
             response.raise_for_status()
             return self._filter_by_state_and_threshold(response.json(), rating_threshold)
