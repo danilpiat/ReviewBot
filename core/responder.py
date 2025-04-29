@@ -1,7 +1,7 @@
 import traceback
-from typing import Optional
+from typing import Optional, Union
 from integrations.deepseek_api import AIResponseGenerator
-from core.models import WbReview
+from core.models import WbReview, OzonReview, Review
 from utils import AppLogger
 
 
@@ -11,7 +11,7 @@ class ReviewResponder:
         self.ai_client = ai_client
         self.logger = logger.logger
 
-    def process_review(self, review: Optional[WbReview], base_prompt: str, prompt: str) -> Optional[str]:
+    def process_review(self, review: Review, base_prompt: str, prompt: str) -> Optional[str]:
         try:
             self.logger.info(f"[{self.account}] [{review.marketplace}] Обрабатываю отзыв с id {review.id}")
 

@@ -1,7 +1,36 @@
+from abc import abstractmethod, ABC
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 from enum import Enum
+
+
+class Review(ABC):
+    """Абстрактный базовый класс для отзывов"""
+    def __init__(self, **kwargs):
+        self._raw_data = kwargs
+
+    @property
+    @abstractmethod
+    def marketplace(self) -> str:
+        pass
+
+    @property
+    def metadata(self) -> Dict[str, Any]:
+        return self._raw_data
+
+    @classmethod
+    def create(cls, marketplace: str, data: dict) -> 'Review':
+        """Фабричный метод для создания конкретных реализаций"""
+        factories = {
+            'wb': WbReview,
+            'ozon': OzonReview
+        }
+        factory = factories.get(marketplace.lower())
+        if not factory:
+            raise ValueError(f"Unsupported marketplace: {marketplace}")
+        return factory(**data)
+
 
 @dataclass
 class WbProductDetails:
@@ -24,6 +53,19 @@ class WbProductDetails:
         self.imtId = kwargs.get('imtId')
         self.supplierName = kwargs.get('supplierName')
 
+@dataclass
+class OzonProductDetails:
+    """Детали продукта для Ozon"""
+    brandName: str
+    nmId: int
+    productName: str
+
+    def __init__(self, **kwargs):
+        self.brandName = kwargs.get('brand_info', {}).get('name', '')
+        self.nmId = kwargs.get('offer_id', 0)
+
+        self.productName = kwargs.get('title', '')
+
 
 @dataclass
 class WbReview:
@@ -42,7 +84,6 @@ class WbReview:
 
     def __init__(self, **kwargs):
         # Основные необходимые поля
-        self.marketplace = "Wildberries"
         self.id = kwargs['id']
         self.text = kwargs.get('text', '')
         self.productValuation = kwargs['productValuation']
@@ -61,6 +102,10 @@ class WbReview:
         self.cons = kwargs.get('cons', '')
 
     @property
+    def marketplace(self) -> str:
+        return "Wildberries"
+
+    @property
     def metadata(self) -> Dict[str, Any]:
         """Доступ ко всем данным отзыва"""
         return self._raw_data
@@ -69,6 +114,67 @@ class WbReview:
     def original_response(self) -> Dict[str, Any]:
         """Полный оригинальный ответ API"""
         return self._raw_data
+
+
+@dataclass
+class OzonReview(Review):
+    """Модель отзыва Ozon с полной обработкой API данных"""
+    id: str
+    rating: int
+    created_at: datetime
+    author: str
+    product_details: OzonProductDetails
+    text: str
+    interaction_status: str = "NOT_VIEWED"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        # Основные поля
+        self.id = str(kwargs['uuid'])
+        self.rating = kwargs['rating']
+        self.userName = kwargs.get('author_name', None)
+        self.userName = None if "Пользователь предпочёл скрыть свои данные" == self.userName else self.userName
+        self.interaction_status = kwargs.get('interaction_status', 'NOT_VIEWED')
+
+        # Обработка текста
+        text_data = kwargs.get('text', {})
+        self.text = self._parse_text(text_data)
+
+        self.productValuation = kwargs['rating']
+
+        # Дата создания
+        self.created_at = datetime.fromisoformat(kwargs['published_at'].replace('Z', ''))
+
+        # Информация о продукте
+        product_data = kwargs.get('product', {})
+        product_data['sku'] = kwargs.get('sku')
+        self.product_details = OzonProductDetails(**product_data)
+
+        self.good = self.product_details.productName
+        self.pros = kwargs.get('text', {}).get('positive', '')
+        self.cons = kwargs.get('text', {}).get('negative', '')
+
+        self.raw_metadata = kwargs
+
+    def _parse_text(self, text_data: Dict) -> str:
+        """Собирает текст отзыва из разных полей"""
+        parts = []
+        if text_data.get('comment'):
+            parts.append(text_data['comment'])
+        return '\n'.join(parts) or ''
+
+
+    @property
+    def marketplace(self) -> str:
+        return "Ozon"
+
+    @property
+    def metadata(self) -> Dict[str, Any]:
+        return {
+            **self.raw_metadata,
+            **self.product_details
+        }
 
 
 class ResponseStatus(str, Enum):
