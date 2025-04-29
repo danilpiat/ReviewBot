@@ -91,6 +91,7 @@ class OzonIntegration:
             },
             "company_type": "seller",
             "filter": {
+                "rating": [i for i in range(int(rating_threshold), 5 + 1)],
                 "interaction_status": ["NOT_VIEWED"]
             },
             "company_id": self.company_id,
