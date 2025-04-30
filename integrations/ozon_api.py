@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+from http.cookies import SimpleCookie
 
 from curl_cffi import requests
 import json
@@ -11,24 +12,32 @@ class OzonIntegration:
     def __init__(self, cookies_path: str, company_id: str):
         self.base_url = "https://seller.ozon.ru"
         self.company_id = company_id
-        self.cookies = self._load_cookies(cookies_path)
+        self.cookies_path = cookies_path
+        self.all_companies_cookies = self._load_all_cookies()
+        self.cookies = self._get_company_cookies()
         self.headers = self._prepare_headers()
         self.last_request_time: Optional[float] = None
         self.rate_limit_delay = 2  # Более консервативный интервал для Ozon
 
-    def _load_cookies(self, path: str) -> Dict[str, str]:
-        """Загружает cookies из JSON файла"""
-        if not os.path.exists(path):
-            raise FileNotFoundError(f"Cookies file not found: {path}")
+    def _load_all_cookies(self) -> dict:
+        """Загружает все cookies для всех компаний из файла"""
+        if not os.path.exists(self.cookies_path):
+            raise FileNotFoundError(f"Cookies file not found: {self.cookies_path}")
 
         try:
-            with open(path, 'r') as f:
-                all_cookies = json.load(f)
-                return all_cookies[self.company_id]
+            with open(self.cookies_path, 'r') as f:
+                return json.load(f)
         except json.JSONDecodeError:
             raise ValueError("Invalid JSON format in cookies file")
         except Exception as e:
             raise RuntimeError(f"Error loading cookies: {str(e)}")
+
+    def _get_company_cookies(self) -> dict:
+        """Получает cookies для текущей компании"""
+        cookies = self.all_companies_cookies.get(self.company_id)
+        if not cookies:
+            raise ValueError(f"No cookies found for company ID: {self.company_id}")
+        return cookies
 
     def _prepare_headers(self) -> dict:
         """Формирует заголовки с динамическими cookies"""
@@ -109,6 +118,10 @@ class OzonIntegration:
             )
             response.raise_for_status()
 
+            if 'set-cookie' in response.headers:
+                new_cookies = self._parse_cookies(response.headers['set-cookie'])
+                self._update_cookies(new_cookies)
+
             data = response.json()
             l_timestamp = data['pagination_last_timestamp']
             l_uuid = data['pagination_last_uuid']
@@ -116,6 +129,30 @@ class OzonIntegration:
 
         except Exception as e:
             raise ConnectionError(f"Ozon API error: {str(e)}")
+
+    def _parse_cookies(self, cookie_header: str) -> dict:
+        """Парсит cookies из заголовка Set-Cookie"""
+        cookie = SimpleCookie()
+        cookie.load(cookie_header)
+        return {k: v.value for k, v in cookie.items()}
+
+    def _update_cookies(self, new_cookies: dict):
+        """Обновляет cookies в памяти и сохраняет в файл"""
+        # Обновляем cookies для текущей компании
+        self.cookies.update(new_cookies)
+        self.all_companies_cookies[self.company_id] = self.cookies
+
+        # Сохраняем все компании обратно в файл
+        try:
+            with open(self.cookies_path, 'w') as f:
+                json.dump(self.all_companies_cookies, f, indent=2, ensure_ascii=False)
+        except Exception as e:
+            raise RuntimeError(f"Failed to save cookies: {str(e)}")
+
+        # Обновляем заголовки
+        self.headers['cookie'] = "; ".join(
+            [f"{k}={v}" for k, v in self.cookies.items()]
+        )
 
     def post_response(self, review_uuid: str, response_text: str) -> bool:
         """Отправляет ответ на отзыв в Ozon"""
