@@ -27,7 +27,7 @@ class ReviewResponder:
                 self.logger.error(f"[{self.account}] [{review.marketplace}] [{review.id}] Текст ответа от ИИ не прошел пост-валидацию.")
         except Exception as e:
             self.logger.error(f"[{self.account}] [{review.marketplace}] [{review.id}] Review processing failed. " + traceback.format_exc())
-            return None
+            raise e
 
     def _validate_review(self, review: WbReview) -> bool:
         # Дополнительные проверки

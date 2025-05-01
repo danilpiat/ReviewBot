@@ -67,4 +67,4 @@ class AIResponseGenerator: #TODO сделать обработку случая,
         try:
             return response.choices[0].message.content
         except Exception as e:
-            return ''
+            raise e
