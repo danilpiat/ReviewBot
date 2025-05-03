@@ -3,6 +3,9 @@ import time
 import requests
 from typing import List, Optional
 
+import backoff
+from requests.exceptions import RequestException
+
 FEEDBACKS_URL = "/api/v1/feedbacks"
 ANSWER_TO_FEEDBACK_URL = "/api/v1/feedbacks/answer"
 
@@ -13,6 +16,10 @@ class WBIntegration:
         self.state = ["wbRu", 'none'] #только прошедшие проверку WB отзывы (прошли модерацию от Wb)
         self.last_request_time: Optional[float] = None
 
+    @backoff.on_exception(backoff.expo,
+                          (RequestException, ConnectionError),
+                          max_tries=3,
+                          max_time=30)
     def get_new_reviews(self, rating_threshold: int, is_answered=False) -> List[dict]:
         try:
             response = requests.get(
@@ -38,6 +45,10 @@ class WBIntegration:
                 new_reviews.append(review)
         return new_reviews
 
+    @backoff.on_exception(backoff.expo,
+                          (RequestException, ConnectionError),
+                          max_tries=3,
+                          max_time=30)
     def post_response(self, review_id: str, response_text: str) -> bool:
         """
         Отправляет ответ на отзыв через Wildberries API

@@ -6,6 +6,8 @@ from curl_cffi import requests
 import json
 import time
 from typing import List, Dict, Optional
+import backoff
+from curl_cffi.requests.exceptions import RequestException
 
 
 class OzonIntegration:
@@ -86,6 +88,10 @@ class OzonIntegration:
 
         return all_reviews
 
+    @backoff.on_exception(backoff.expo,
+                          (RequestException, ConnectionError),
+                          max_tries=3,
+                          max_time=30)
     def _get_reviews_chunk(self, rating_threshold: int,
                            last_timestamp: Optional[str],
                            last_uuid: Optional[str]) -> (List[dict], str, str):
@@ -154,6 +160,10 @@ class OzonIntegration:
             [f"{k}={v}" for k, v in self.cookies.items()]
         )
 
+    backoff.on_exception(backoff.expo,
+                         (RequestException, ConnectionError),
+                         max_tries=3,
+                         max_time=30)
     def post_response(self, review_uuid: str, response_text: str) -> bool:
         """Отправляет ответ на отзыв в Ozon"""
         self._rate_limit()
